@@ -384,10 +384,15 @@ function getFiltros(){
 }
 
 // ── TABS ──
+const PANELS = ['panel-0','panel-1','panel-2'];
+
 function switchTab(idx){
   activeTab = idx;
   document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', i===idx));
-  document.querySelectorAll('.tab-panel').forEach((p,i) => p.classList.toggle('active', i===idx));
+  PANELS.forEach((id,i) => {
+    const el = document.getElementById(id);
+    if(el) el.classList.toggle('active', i===idx);
+  });
   if(WB) render();
 }
 
