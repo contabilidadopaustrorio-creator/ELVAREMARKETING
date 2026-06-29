@@ -377,7 +377,7 @@ async function cargar(){
     poblarFiltros();
     const ec = $('estado-carga');
     if(ec) ec.style.display = 'none';
-    render();
+    switchTab(activeTab);
   } catch(e){
     const ec = $('estado-carga');
     if(ec) ec.innerHTML = `❌ ${e.message}<br><small>Verifica que TABLERO.xlsx esté en la misma carpeta que este HTML.</small>`;
