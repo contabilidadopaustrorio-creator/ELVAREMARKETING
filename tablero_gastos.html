@@ -243,7 +243,7 @@
         </div>
 
         <div>
-          <label style="font-size:11px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">📉 Gasto real YTD ($)</label>
+          <label style="font-size:11px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">📉 Gasto real Acumulado ($)</label>
           <input id="sim-gasto-real" type="number" min="0" step="100"
             style="border:2px solid var(--red);border-radius:8px;padding:10px 14px;font-size:15px;font-weight:700;width:100%;color:var(--navy);outline:none"
             oninput="simular()"/>
@@ -291,7 +291,7 @@
         </div>
         <div style="font-size:22px;color:var(--gray2)">+</div>
         <div>
-          <span style="font-size:11px;font-weight:700;color:var(--gray3);text-transform:uppercase;letter-spacing:.06em">Real YTD</span>
+          <span style="font-size:11px;font-weight:700;color:var(--gray3);text-transform:uppercase;letter-spacing:.06em">Real Acumulado</span>
           <div id="sim-lbl-real" style="font-size:1.1rem;font-weight:700;color:var(--red)">$0.00</div>
         </div>
         <div style="font-size:22px;color:var(--gray2)">+</div>
@@ -812,13 +812,13 @@ function renderProyeccion(f){
   const dataAnio = sheets.tablero.filter(r => r.AÑO === f.año);
   const gasAnio  = sheets.gastos.filter(r => r.AÑO === f.año);
 
-  // Acumulados YTD
+  // Acumulados Acumulado
   const sum = {};
   dataAnio.forEach(r => { sum[r.DETALLE] = (sum[r.DETALLE]||0) + r.TOTAL; });
-  const ventasYTD   = sum['VENTA DE BIENES '] || sum['VENTA DE BIENES'] || 0;
-  const otrosYTD    = sum['OTROS INGRESOS'] || 0;
-  const gastosYTD   = sum['GASTOS'] || 0;
-  const retencYTD   = sum['RETENCIONES RENTA'] || 0;
+  const ventasAcumulado   = sum['VENTA DE BIENES '] || sum['VENTA DE BIENES'] || 0;
+  const otrosAcumulado    = sum['OTROS INGRESOS'] || 0;
+  const gastosAcumulado   = sum['GASTOS'] || 0;
+  const retencAcumulado   = sum['RETENCIONES RENTA'] || 0;
 
   // Meses con datos
   const mesesConDatos = [...new Set(dataAnio.map(r=>r.MES))].filter(m=>ORDEN_MESES.includes(m));
@@ -827,10 +827,10 @@ function renderProyeccion(f){
   const idxUltimoMes = Math.max(...mesesConDatos.map(m=>ORDEN_MESES.indexOf(m)));
 
   // Promedios mensuales
-  const ventaMes  = ventasYTD / nMeses;
-  const otrosMes  = otrosYTD  / nMeses;
-  const gastoMes  = gastosYTD / nMeses;
-  const retencMes = retencYTD / nMeses;
+  const ventaMes  = ventasAcumulado / nMeses;
+  const otrosMes  = otrosAcumulado  / nMeses;
+  const gastoMes  = gastosAcumulado / nMeses;
+  const retencMes = retencAcumulado / nMeses;
 
   // Proyección anual (manteniendo mismo ritmo)
   const ventasAnual  = ventaMes  * 12;
@@ -863,10 +863,10 @@ function renderProyeccion(f){
 
   // KPIs base
   $('kpi-proy-base').innerHTML = [
-    {l:`Ventas YTD (${nMeses} mes${nMeses>1?'es':''})`, v:fmt$(ventasYTD), cls:''},
-    {l:'Gastos YTD',        v:fmt$(gastosYTD), cls:'red'},
-    {l:'Otros Ingresos YTD',v:fmt$(otrosYTD), cls:''},
-    {l:'Retenciones YTD',   v:fmt$(retencYTD), cls:'amber'},
+    {l:`Ventas Acumulado (${nMeses} mes${nMeses>1?'es':''})`, v:fmt$(ventasAcumulado), cls:''},
+    {l:'Gastos Acumulado',        v:fmt$(gastosAcumulado), cls:'red'},
+    {l:'Otros Ingresos Acumulado',v:fmt$(otrosAcumulado), cls:''},
+    {l:'Retenciones Acumulado',   v:fmt$(retencAcumulado), cls:'amber'},
     {l:'Meses restantes',   v:mesesRestantes, cls:''},
     {l:'Promedio venta/mes',v:fmt$(ventaMes), cls:'green'},
   ].map(c=>`<div class="kpi-card ${c.cls}"><div class="kpi-label">${c.l}</div><div class="kpi-value">${c.v}</div></div>`).join('');
@@ -1006,7 +1006,7 @@ function simular(){
         <div style="font-size:1.1rem;font-weight:800;color:var(--navy)">${fmt$(ventas)}</div>
       </div>
       <div style="background:#fff0f0;border-radius:8px;padding:12px 14px">
-        <div style="font-size:10px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Gasto real YTD</div>
+        <div style="font-size:10px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Gasto real Acumulado</div>
         <div style="font-size:1.1rem;font-weight:800;color:var(--navy)">${fmt$(gasReal)}</div>
       </div>
       <div style="background:#fff8e1;border-radius:8px;padding:12px 14px">
