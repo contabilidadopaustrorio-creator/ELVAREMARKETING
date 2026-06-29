@@ -375,6 +375,14 @@ const fmtPct = v => Number(v||0).toFixed(1) + '%';
 const cleanNum = v => isNaN(parseFloat(v)) ? 0 : parseFloat(v);
 const cleanStr = v => v == null ? '' : String(v).trim();
 const cleanUp  = v => cleanStr(v).toUpperCase();
+function excelDateToStr(serial){
+  if(!serial || isNaN(serial)) return String(serial||'');
+  const d = new Date(Math.round((serial - 25569) * 86400 * 1000));
+  const dd = String(d.getUTCDate()).padStart(2,'0');
+  const mm = String(d.getUTCMonth()+1).padStart(2,'0');
+  const yyyy = d.getUTCFullYear();
+  return `${yyyy}-${mm}-${dd}`;
+}
 const loading  = show => $('loading').classList.toggle('show', show);
 const destroyChart = id => { if(charts[id]){ charts[id].destroy(); delete charts[id]; } };
 
@@ -414,10 +422,10 @@ function procesarSheets(){
   sheets.inversiones = sheetToJSON('INVERSIONES').map(r=>({
     TITULO:    cleanStr(r['TITULO']),
     BANCO:     cleanStr(r['BANCO']),
-    EMISION:   cleanStr(r['FECHA_EMISION']),
+    EMISION:   isNaN(r['FECHA_EMISION']) ? cleanStr(r['FECHA_EMISION']) : excelDateToStr(r['FECHA_EMISION']),
     CAPITAL:   cleanNum(r['VALOR_CAPITAL']),
     MONEDA:    cleanStr(r['MONEDA']),
-    VENCE:     cleanStr(r['FECHA_VENCIMIENTO']),
+    VENCE:     isNaN(r['FECHA_VENCIMIENTO']) ? cleanStr(r['FECHA_VENCIMIENTO']) : excelDateToStr(r['FECHA_VENCIMIENTO']),
     DIAS:      cleanNum(r['PLAZO_DIAS']),
     TASA_NOM:  cleanNum(r['TASA_NOMINAL']),
     TASA_EFE:  cleanNum(r['TASA_EFECTIVA']),
