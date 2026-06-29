@@ -229,6 +229,34 @@
 
     <hr class="divider"/>
 
+    <!-- SIMULADOR MANUAL -->
+    <div class="section-title" style="font-size:13px">🧮 Simulador — Ingresa tu gasto y ve el resultado</div>
+    <div style="background:#fff;border-radius:10px;box-shadow:var(--shadow);padding:20px 24px;margin-bottom:20px;border-top:3px solid var(--teal2)">
+      <div style="display:flex;gap:20px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--gray3);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Gastos adicionales a ingresar ($)</label>
+          <input id="sim-gasto-extra" type="number" min="0" step="100" placeholder="0.00"
+            style="border:2px solid var(--teal);border-radius:8px;padding:10px 14px;font-size:16px;font-weight:700;width:220px;color:var(--navy);outline:none"
+            oninput="simular()"/>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--gray3);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">Tipo de gasto</label>
+          <select id="sim-tipo" onchange="simular()"
+            style="border:1.5px solid var(--gray2);border-radius:8px;padding:10px 14px;font-size:14px;color:var(--navy);min-width:180px">
+            <option value="anual">Total anual</option>
+            <option value="mensual">Por mes (restantes)</option>
+          </select>
+        </div>
+        <button onclick="document.getElementById('sim-gasto-extra').value='';simular()"
+          style="background:transparent;border:1.5px solid var(--gray2);border-radius:8px;padding:10px 16px;font-size:13px;color:var(--gray3);cursor:pointer;font-weight:600">
+          ✕ Limpiar
+        </button>
+      </div>
+      <div id="sim-resultado"></div>
+    </div>
+
+    <hr class="divider"/>
+
     <!-- TABLA ESCENARIOS -->
     <div class="section-title" style="font-size:13px">📊 Escenarios — Impacto según nivel de gastos anuales</div>
     <div class="two-col" style="margin-bottom:20px">
@@ -761,6 +789,13 @@ function renderProyeccion(f){
   const gastosAdicPorMes    = mesesRestantes > 0 ? gastosAdicNecesarios / mesesRestantes : 0;
   const ceroIR = calcIR(ventasAnual, otrosAnual, gastosMinAnual, retencAnual);
 
+  // Guardar para el simulador
+  _simVentasAnual = ventasAnual;
+  _simOtrosAnual  = otrosAnual;
+  _simGastosAnual = gastosAnual;
+  _simRetencAnual = retencAnual;
+  _simMesesRestantes = Math.max(1, mesesRestantes);
+
   // KPIs base
   $('kpi-proy-base').innerHTML = [
     {l:`Ventas YTD (${nMeses} mes${nMeses>1?'es':''})`, v:fmt$(ventasYTD), cls:''},
@@ -858,6 +893,61 @@ function renderProyeccion(f){
   // Tabla mes a mes proyectado
   renderTablaProyMeses(f, ventaMes, otrosMes, gastoMes, retencMes, gastosAdicPorMes, idxUltimoMes, mesesConDatos);
 }
+
+// Variables globales del simulador
+let _simVentasAnual=0, _simOtrosAnual=0, _simGastosAnual=0, _simRetencAnual=0, _simMesesRestantes=0;
+
+function simular(){
+  const extra = parseFloat(document.getElementById('sim-gasto-extra').value) || 0;
+  const tipo  = document.getElementById('sim-tipo').value;
+  const extraAnual = tipo === 'mensual' ? extra * _simMesesRestantes : extra;
+
+  const gastosNuevo = _simGastosAnual + extraAnual;
+  const r = calcIR(_simVentasAnual, _simOtrosAnual, gastosNuevo, _simRetencAnual);
+
+  const el = document.getElementById('sim-resultado');
+  if(!el) return;
+
+  if(extra === 0){
+    el.innerHTML = '';
+    return;
+  }
+
+  const ok = r.irPag <= 0.01;
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:14px">
+      <div style="background:var(--gray1);border-radius:8px;padding:12px 14px">
+        <div style="font-size:10px;font-weight:700;color:var(--gray3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Gasto adicional</div>
+        <div style="font-size:1.2rem;font-weight:800;color:var(--navy)">${fmt$(extraAnual)}</div>
+        <div style="font-size:11px;color:var(--gray3)">${tipo==='mensual'?`$${fmtN(extra)}/mes × ${_simMesesRestantes} meses`:'total anual'}</div>
+      </div>
+      <div style="background:var(--gray1);border-radius:8px;padding:12px 14px">
+        <div style="font-size:10px;font-weight:700;color:var(--gray3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Gastos totales año</div>
+        <div style="font-size:1.2rem;font-weight:800;color:var(--navy)">${fmt$(gastosNuevo)}</div>
+      </div>
+      <div style="background:var(--gray1);border-radius:8px;padding:12px 14px">
+        <div style="font-size:10px;font-weight:700;color:var(--gray3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Ganancia Neta</div>
+        <div style="font-size:1.2rem;font-weight:800;color:var(--navy)">${fmt$(r.gn)}</div>
+      </div>
+      <div style="background:var(--gray1);border-radius:8px;padding:12px 14px">
+        <div style="font-size:10px;font-weight:700;color:var(--gray3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">IR 25%</div>
+        <div style="font-size:1.2rem;font-weight:800;color:var(--navy)">${fmt$(r.ir)}</div>
+      </div>
+      <div style="background:${ok?'#e7f9ef':'#fde8e8'};border-radius:8px;padding:12px 14px;border:2px solid ${ok?'var(--green)':'var(--red)'}">
+        <div style="font-size:10px;font-weight:700;color:var(--gray3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">IR por Pagar</div>
+        <div style="font-size:1.3rem;font-weight:800;color:${ok?'var(--green)':'var(--red)'}">${fmt$(r.irPag)}</div>
+      </div>
+      <div style="background:var(--gray1);border-radius:8px;padding:12px 14px">
+        <div style="font-size:10px;font-weight:700;color:var(--gray3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Utilidad Líquida</div>
+        <div style="font-size:1.2rem;font-weight:800;color:var(--navy)">${fmt$(r.util)}</div>
+      </div>
+    </div>
+    <div style="padding:10px 16px;border-radius:8px;background:${ok?'#d4f7e7':'#fde8e8'};color:${ok?'#0f7a4d':'#b83434'};font-weight:700;font-size:13px">
+      ${ok ? '✅ Con ese gasto adicional el IR por pagar queda en $0.00 — ¡cubierto por retenciones!' : `⚠️ Aún quedaría un IR por pagar de ${fmt$(r.irPag)}. Necesitas ${fmt$(_simGastosAnual + (_simVentasAnual + _simOtrosAnual - _simRetencAnual/0.2125) - _simGastosAnual - extraAnual)} más de gasto para llegar a cero.`}
+    </div>`;
+}
+
+const fmtN = v => Number(v||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 
 function renderTablaProyMeses(f, ventaMes, otrosMes, gastoMes, retencMes, gastosAdicPorMes, idxUltimoMes, mesesConDatos){
   const dataAnio = sheets.tablero.filter(r => r.AÑO === f.año);
