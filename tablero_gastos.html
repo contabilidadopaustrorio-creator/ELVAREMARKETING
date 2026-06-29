@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Tablero de Control – Elvare Marketing SAS</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --navy:   #0B3C49;
+    --teal:   #1A7A8A;
+    --teal2:  #2BAFCA;
+    --sky:    #E3F5F8;
+    --white:  #FFFFFF;
+    --gray1:  #F4F7F9;
+    --gray2:  #E2E8EC;
+    --gray3:  #9AADB5;
+    --text:   #1C2E35;
+    --green:  #1DB87A;
+    --red:    #E05252;
+    --amber:  #F0A500;
+    --font:   'Segoe UI', system-ui, sans-serif;
+    --radius: 10px;
+    --shadow: 0 2px 12px rgba(11,60,73,.10);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--gray1); color: var(--text); font-size: 14px; min-height: 100vh; }
+
+  /* HEADER */
+  header {
+    background: var(--white);
+    border-bottom: 3px solid var(--teal);
+    padding: 0 32px;
+    display: flex; align-items: center; gap: 24px;
+    min-height: 72px;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 8px rgba(11,60,73,.12);
+  }
+  header img { height: 44px; }
+  header h1 { font-size: 1.15rem; font-weight: 700; color: var(--navy); flex: 1; text-align: center; letter-spacing: .02em; }
+  #btn-actualizar {
+    background: var(--teal); color: var(--white); border: none;
+    padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background .2s;
+    white-space: nowrap;
+  }
+  #btn-actualizar:hover { background: var(--navy); }
+
+  /* FILTROS */
+  #filtros {
+    background: var(--white); padding: 12px 32px;
+    display: flex; align-items: flex-end; gap: 16px;
+    border-bottom: 1px solid var(--gray2); flex-wrap: wrap;
+  }
+  .fg { display: flex; flex-direction: column; gap: 4px; }
+  .fg label { font-size: 11px; font-weight: 600; color: var(--gray3); text-transform: uppercase; letter-spacing:.06em; }
+  .fg select {
+    border: 1.5px solid var(--gray2); border-radius: 7px; padding: 7px 28px 7px 10px;
+    font-size: 13px; background: var(--white); color: var(--text); appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%239AADB5' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+    cursor: pointer; min-width: 140px;
+  }
+  .fg select:focus { outline: none; border-color: var(--teal); }
+
+  /* TABS */
+  #tabs-bar {
+    background: var(--white); padding: 0 24px; display: flex;
+    gap: 2px; border-bottom: 2px solid var(--gray2);
+  }
+  .tab-btn {
+    padding: 12px 20px; font-size: 13px; font-weight: 600; color: var(--gray3);
+    cursor: pointer; border: none; background: none;
+    border-bottom: 3px solid transparent; margin-bottom: -2px;
+    white-space: nowrap; transition: color .15s, border-color .15s;
+  }
+  .tab-btn:hover { color: var(--teal); }
+  .tab-btn.active { color: var(--navy); border-bottom-color: var(--teal); }
+
+  /* CONTENT */
+  #content { padding: 24px 28px; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* SECTION TITLE */
+  .section-title { font-size: 1rem; font-weight: 800; color: var(--navy); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .divider { border: none; border-top: 1px solid var(--gray2); margin: 22px 0; }
+
+  /* KPI GRID */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 14px; margin-bottom: 22px; }
+  .kpi-card {
+    background: var(--white); border-radius: var(--radius); padding: 16px 18px;
+    box-shadow: var(--shadow); border-top: 3px solid var(--teal);
+  }
+  .kpi-card.green { border-top-color: var(--green); }
+  .kpi-card.red   { border-top-color: var(--red); }
+  .kpi-card.amber { border-top-color: var(--amber); }
+  .kpi-label { font-size: 11px; font-weight: 700; color: var(--gray3); text-transform: uppercase; letter-spacing:.06em; margin-bottom: 6px; }
+  .kpi-value { font-size: 1.35rem; font-weight: 800; color: var(--navy); word-break: break-all; }
+  .kpi-sub   { font-size: 11px; color: var(--gray3); margin-top: 3px; }
+
+  /* GAUGE GRID */
+  .gauge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; margin-bottom: 22px; }
+  .gauge-card {
+    background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 16px 12px 10px; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .gauge-card .g-label { font-size: 11px; font-weight: 700; color: var(--gray3); text-transform: uppercase; letter-spacing:.06em; text-align: center; }
+  .gauge-card .g-value { font-size: 1.3rem; font-weight: 800; color: var(--navy); }
+  .gauge-card .g-sub   { font-size: 11px; color: var(--gray3); }
+
+  /* TABLA */
+  .table-wrap { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); overflow: auto; max-height: 520px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    background: var(--navy); color: var(--white); padding: 10px 14px;
+    text-align: right; font-weight: 700; font-size: 12px;
+    position: sticky; top: 0; z-index: 2; white-space: nowrap;
+  }
+  thead th:first-child { text-align: left; }
+  tbody tr { transition: background .12s; }
+  tbody tr:hover { background: var(--sky); }
+  tbody td { padding: 9px 14px; border-bottom: 1px solid var(--gray2); text-align: right; }
+  tbody td:first-child { text-align: left; font-weight: 500; }
+  .row-calc  { background: var(--gray1); }
+  .row-pct   { background: #f0fafe; color: var(--teal); font-style: italic; }
+  .row-final { background: #e7f9ef; font-weight: 700; }
+  .row-total td { font-weight: 700; background: var(--sky); }
+  tfoot td { padding: 10px 14px; font-weight: 800; background: var(--navy); color: var(--white); text-align: right; }
+  tfoot td:first-child { text-align: left; }
+
+  /* CHARTS */
+  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 20px; }
+  @media(max-width:700px) { .chart-grid { grid-template-columns: 1fr; } }
+  .chart-box { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; }
+  .chart-box h3 { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 14px; }
+  .chart-box canvas { max-height: 270px; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media(max-width:700px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* BADGE EXPANDIBLE */
+  .filtro-activo {
+    display:inline-flex; align-items:center; gap:6px;
+    background: var(--sky); border: 1px solid var(--teal2);
+    border-radius: 99px; padding: 4px 12px;
+    font-size: 12px; font-weight: 700; color: var(--teal);
+    margin-bottom: 12px; cursor: pointer;
+  }
+  tr.row-expandable { cursor: pointer; }
+  tr.row-expandable td:first-child::before { content: '▶ '; font-size:10px; opacity:.6; }
+  tr.row-expandable.open td:first-child::before { content: '▼ '; }
+  tr.row-detail td { padding: 6px 14px 6px 32px; font-size: 12px; background:#f8fdff; border-bottom: 1px dashed var(--gray2); }
+  tr.row-detail td:first-child { color: var(--gray3); }
+
+  /* LOADING */
+  #loading { display:none; position:fixed; inset:0; background:rgba(255,255,255,.8); z-index:999; justify-content:center; align-items:center; flex-direction:column; gap:16px; }
+  #loading.show { display:flex; }
+  .spinner { width:42px; height:42px; border:4px solid var(--gray2); border-top-color:var(--teal); border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  #estado-carga { text-align:center; padding:60px 20px; color:var(--gray3); font-size:15px; }
+
+  /* EVOLUCION MENSUAL TABLE */
+  .mes-evo-table thead th { background: var(--teal); }
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner"></div><span style="color:var(--navy);font-weight:700">Procesando datos…</span></div>
+
+<header>
+  <img src="logo.png" alt="Opaustro" onerror="this.style.display='none'"/>
+  <h1>TABLERO DE CONTROL – ELVARE MARKETING SAS</h1>
+  <button id="btn-actualizar" onclick="cargar()">🔄 Actualizar</button>
+</header>
+
+<div id="filtros">
+  <div class="fg">
+    <label>Año</label>
+    <select id="sel-año" onchange="render()"><option value="">—</option></select>
+  </div>
+  <div class="fg">
+    <label>Mes</label>
+    <select id="sel-mes" onchange="render()"><option value="TODOS">TODOS</option></select>
+  </div>
+</div>
+
+<div id="tabs-bar">
+  <button class="tab-btn active" onclick="switchTab(0)">📊 Tablero Principal</button>
+  <button class="tab-btn" onclick="switchTab(1)">💸 Análisis de Gastos</button>
+</div>
+
+<div id="content">
+  <div id="estado-carga">⏳ Cargando TABLERO.xlsx…</div>
+
+  <!-- TAB 0: TABLERO PRINCIPAL -->
+  <div class="tab-panel" id="panel-0">
+    <div class="section-title">📊 Indicadores Clave</div>
+    <div class="kpi-grid" id="kpi-main"></div>
+    <div class="gauge-grid" id="gauges-main"></div>
+    <hr class="divider"/>
+    <div class="section-title">📋 Estado de Resultados por Mes</div>
+    <div class="table-wrap"><table id="tbl-main"><thead></thead><tbody></tbody></table></div>
+    <hr class="divider"/>
+    <div class="chart-grid">
+      <div class="chart-box"><h3>Ventas vs Gastos por Mes</h3><canvas id="chart-vg"></canvas></div>
+      <div class="chart-box"><h3>Ganancia Neta por Mes</h3><canvas id="chart-gn"></canvas></div>
+    </div>
+  </div>
+
+  <!-- TAB 1: GASTOS -->
+  <div class="tab-panel" id="panel-1">
+    <div class="section-title">💸 Análisis de Gastos</div>
+    <div class="kpi-grid" id="kpi-gastos"></div>
+    <hr class="divider"/>
+    <div class="two-col">
+      <div>
+        <div class="section-title" style="font-size:13px">Por Rubro <small style="color:var(--gray3);font-weight:400">(clic para ver detalle)</small></div>
+        <div class="table-wrap"><table id="tbl-rubros"><thead></thead><tbody></tbody></table></div>
+        <div id="det-wrap" style="display:none;margin-top:12px">
+          <div class="filtro-activo" onclick="cerrarDet()">
+            <span>Rubro:</span>&nbsp;<span id="det-nombre"></span>&nbsp;✕
+          </div>
+          <div class="table-wrap"><table id="tbl-det"><thead></thead><tbody></tbody></table></div>
+        </div>
+      </div>
+      <div class="chart-box"><h3>Top Rubros por Gasto</h3><canvas id="chart-rubros"></canvas></div>
+    </div>
+    <hr class="divider"/>
+    <div class="section-title" style="font-size:13px">📅 Evolución Mensual por Rubro</div>
+    <div class="table-wrap mes-evo-table"><table id="tbl-evo"><thead></thead><tbody></tbody></table></div>
+    <hr class="divider"/>
+    <div class="chart-grid">
+      <div class="chart-box"><h3>Tendencia de Gastos por Mes</h3><canvas id="chart-tend"></canvas></div>
+      <div class="chart-box"><h3>Composición del Gasto</h3><canvas id="chart-comp"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── GLOBALS ──
+let WB = null;
+let sheets = {};
+let activeTab = 0;
+const charts = {};
+const ORDEN_MESES = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
+
+// ── UTILS ──
+const $ = id => document.getElementById(id);
+const fmt$ = v => v == null || isNaN(v) ? '$0.00' : '$' + Number(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtPct = v => Number(v||0).toFixed(1) + '%';
+const cleanNum = v => isNaN(parseFloat(v)) ? 0 : parseFloat(v);
+const cleanStr = v => v == null ? '' : String(v).trim();
+const cleanUp  = v => cleanStr(v).toUpperCase();
+const loading  = show => $('loading').classList.toggle('show', show);
+const destroyChart = id => { if(charts[id]){ charts[id].destroy(); delete charts[id]; } };
+
+// ── CARGA ──
+async function cargar(){
+  loading(true);
+  try {
+    const resp = await fetch('TABLERO.xlsx?t=' + Date.now());
+    if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const buf = await resp.arrayBuffer();
+    WB = XLSX.read(buf, {type:'array', cellDates:false});
+    procesarSheets();
+    poblarFiltros();
+    const ec = $('estado-carga');
+    if(ec) ec.style.display = 'none';
+    render();
+  } catch(e){
+    const ec = $('estado-carga');
+    if(ec) ec.innerHTML = `❌ ${e.message}<br><small>Verifica que TABLERO.xlsx esté en la misma carpeta que este HTML.</small>`;
+  } finally { loading(false); }
+}
+
+function sheetToJSON(name){
+  if(!WB || !WB.SheetNames.includes(name)) return [];
+  return XLSX.utils.sheet_to_json(WB.Sheets[name], {defval:''});
+}
+
+function procesarSheets(){
+  sheets.tablero = sheetToJSON('TABLERO').map(r=>({
+    AÑO: cleanNum(r['AÑO']),
+    MES: cleanUp(r['MES']),
+    DETALLE: cleanStr(r['DETALLE']).trim(),
+    LINEA: cleanStr(r['LINEA']).trim(),
+    TOTAL: cleanNum(r['TOTAL'])
+  }));
+
+  sheets.gastos = sheetToJSON('GASTOS').map(r=>({
+    AÑO: cleanNum(r['AÑO']),
+    MES: cleanUp(r['MES']),
+    RUBRO: cleanStr(r['Rubro '] || r['Rubro']).trim(),
+    DETALLE: cleanStr(r['Detalle']).trim(),
+    TOTAL: cleanNum(r['TOTAL'])
+  }));
+}
+
+// ── FILTROS ──
+function poblarFiltros(){
+  const años = [...new Set(sheets.tablero.map(r=>r.AÑO))].filter(Boolean).sort();
+  const meses = [...new Set(sheets.tablero.map(r=>r.MES))].filter(Boolean);
+
+  const sa = $('sel-año');
+  sa.innerHTML = '<option value="">—</option>';
+  años.forEach(a => sa.innerHTML += `<option value="${a}">${a}</option>`);
+  if(años.length) sa.value = años[años.length - 1];
+
+  const sm = $('sel-mes');
+  sm.innerHTML = '<option value="TODOS">TODOS</option>';
+  meses.sort((a,b) => ORDEN_MESES.indexOf(a) - ORDEN_MESES.indexOf(b))
+       .forEach(m => sm.innerHTML += `<option value="${m}">${m}</option>`);
+}
+
+function getFiltros(){
+  return {
+    año: parseFloat($('sel-año').value) || null,
+    mes: $('sel-mes').value
+  };
+}
+
+// ── TABS ──
+function switchTab(idx){
+  activeTab = idx;
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', i===idx));
+  document.querySelectorAll('.tab-panel').forEach((p,i) => p.classList.toggle('active', i===idx));
+  if(WB) render();
+}
+
+function render(){
+  const f = getFiltros();
+  if(!f.año) return;
+  if(activeTab === 0) renderTablero(f);
+  else renderGastos(f);
+}
+
+// ── GAUGE SVG ──
+function makeGauge(id, value, max, label, unit, colorFn){
+  const el = $(id);
+  if(!el) return;
+  const pct = Math.min(Math.max(value / max, 0), 1);
+  const ang = pct * 180;
+  const color = colorFn ? colorFn(value) : (pct>=0.9?'#1DB87A':pct>=0.7?'#F0A500':'#E05252');
+  const r=70, cx=90, cy=85;
+  function p2xy(deg){ const rad=(deg-180)*Math.PI/180; return [cx+r*Math.cos(rad), cy+r*Math.sin(rad)]; }
+  function arc(s,e,c){
+    const [x1,y1]=p2xy(s), [x2,y2]=p2xy(e), lg=e-s>180?1:0;
+    return `<path d="M${x1},${y1} A${r},${r} 0 ${lg},1 ${x2},${y2}" fill="none" stroke="${c}" stroke-width="14" stroke-linecap="round"/>`;
+  }
+  const disp = unit==='%' ? value.toFixed(1)+'%' : '$'+value.toLocaleString('en-US',{maximumFractionDigits:0});
+  el.innerHTML = `
+    <div class="g-label">${label}</div>
+    <svg viewBox="0 0 180 100" width="160" height="90">
+      ${arc(0,180,'#E2E8EC')}
+      ${ang>1?arc(0,ang,color):''}
+      <text x="${cx}" y="${cy+4}" text-anchor="middle" font-size="16" font-weight="800" fill="#1C2E35">${disp}</text>
+      <text x="16" y="${cy+18}" text-anchor="middle" font-size="9" fill="#9AADB5">0</text>
+      <text x="${cx*2-14}" y="${cy+18}" text-anchor="middle" font-size="9" fill="#9AADB5">${max}${unit}</text>
+    </svg>
+    <div class="g-sub">${disp} / ${max}${unit}</div>`;
+}
+
+// ══════════════════════════════════════════════════
+// TAB 0 – TABLERO PRINCIPAL
+// ══════════════════════════════════════════════════
+function renderTablero(f){
+  // Filtrar datos
+  let data = sheets.tablero.filter(r => r.AÑO === f.año);
+  if(f.mes !== 'TODOS') data = data.filter(r => r.MES === f.mes);
+
+  // Agrupar por DETALLE (sumar todos los meses/líneas)
+  const sum = {};
+  data.forEach(r => { sum[r.DETALLE] = (sum[r.DETALLE]||0) + r.TOTAL; });
+
+  const ventas   = sum['VENTA DE BIENES '] || sum['VENTA DE BIENES'] || 0;
+  const otrosIng = sum['OTROS INGRESOS']  || 0;
+  const gastos   = sum['GASTOS']          || 0;
+  const retenc   = sum['RETENCIONES RENTA'] || 0;
+
+  const ganNeta   = ventas + otrosIng - gastos;
+  const part15    = Math.max(0, ganNeta) * 0.15;
+  const baseImp   = ganNeta - part15;
+  const ir25      = Math.max(0, baseImp) * 0.25;
+  const irPagar   = Math.max(0, ir25 - retenc);
+  const utilLiq   = ganNeta - part15 - ir25;
+  const pctGasto  = ventas ? (gastos / ventas) * 100 : 0;
+  const pctMargen = ventas ? (utilLiq / ventas) * 100 : 0;
+  const pctGanNeta= ventas ? (ganNeta / ventas) * 100 : 0;
+
+  // KPIs
+  const kpiEl = $('kpi-main');
+  kpiEl.innerHTML = [
+    {l:'💰 Venta de Bienes', v:fmt$(ventas), cls:''},
+    {l:'💵 Otros Ingresos',  v:fmt$(otrosIng), cls:''},
+    {l:'📉 Gastos Totales',  v:fmt$(gastos),  cls:'red'},
+    {l:'✅ Ganancia Neta',   v:fmt$(ganNeta), cls: ganNeta>=0?'green':'red'},
+    {l:'👥 Participación 15%', v:fmt$(part15), cls:'amber'},
+    {l:'🏛️ IR 25%',          v:fmt$(ir25), cls:''},
+    {l:'💳 Retenciones Renta',v:fmt$(retenc), cls:''},
+    {l:'📌 IR por Pagar',    v:fmt$(irPagar), cls: irPagar>0?'red':'green'},
+    {l:'💎 Utilidad Líquida', v:fmt$(utilLiq), cls: utilLiq>=0?'green':'red'},
+  ].map(c=>`<div class="kpi-card ${c.cls}"><div class="kpi-label">${c.l}</div><div class="kpi-value">${c.v}</div></div>`).join('');
+
+  // Gauges
+  const gEl = $('gauges-main');
+  gEl.innerHTML = `
+    <div class="gauge-card" id="g-gasto"></div>
+    <div class="gauge-card" id="g-margen"></div>
+    <div class="gauge-card" id="g-ganancia"></div>`;
+  makeGauge('g-gasto',    pctGasto,   100, '% Gasto / Venta',    '%', v=>v<=50?'#1DB87A':v<=70?'#F0A500':'#E05252');
+  makeGauge('g-margen',   Math.max(0,pctMargen), 30, '% Margen Utilidad', '%', v=>v>=10?'#1DB87A':v>=5?'#F0A500':'#E05252');
+  makeGauge('g-ganancia', Math.max(0,pctGanNeta),30, '% Ganancia / Venta','%', v=>v>=10?'#1DB87A':v>=5?'#F0A500':'#E05252');
+
+  // Tabla por mes (cuando filtro es TODOS)
+  renderTablaResultados(f);
+
+  // Gráficos
+  renderChartsTablero(f);
+}
+
+function renderTablaResultados(f){
+  let data = sheets.tablero.filter(r => r.AÑO === f.año);
+  if(f.mes !== 'TODOS') data = data.filter(r => r.MES === f.mes);
+
+  const meses = [...new Set(data.map(r=>r.MES))].sort((a,b)=>ORDEN_MESES.indexOf(a)-ORDEN_MESES.indexOf(b));
+
+  // Pivot: DETALLE → mes → total
+  const pivot = {};
+  data.forEach(r=>{
+    if(!pivot[r.DETALLE]) pivot[r.DETALLE]={};
+    pivot[r.DETALLE][r.MES] = (pivot[r.DETALLE][r.MES]||0) + r.TOTAL;
+  });
+
+  const g = (det, mes) => {
+    const d = pivot[det] || pivot[det+' '] || {};
+    return d[mes] || 0;
+  };
+
+  // Calcular filas derivadas por mes
+  const filasCalc = (mes) => {
+    const v = g('VENTA DE BIENES', mes) || g('VENTA DE BIENES ', mes);
+    const oi = g('OTROS INGRESOS', mes);
+    const ga = g('GASTOS', mes);
+    const re = g('RETENCIONES RENTA', mes);
+    const gn = v + oi - ga;
+    const p15 = Math.max(0, gn)*0.15;
+    const bi = gn - p15;
+    const ir = Math.max(0, bi)*0.25;
+    const irp = Math.max(0, ir - re);
+    const ul = gn - p15 - ir;
+    return {v, oi, ga, re, gn, p15, bi, ir, irp, ul};
+  };
+
+  const filaTotal = (fn) => {
+    const tot = {};
+    meses.forEach(m=>{ const c=fn(m); Object.keys(c).forEach(k=>{ tot[k]=(tot[k]||0)+c[k]; }); });
+    return tot;
+  };
+  const T = filaTotal(filasCalc);
+
+  const tbl = $('tbl-main');
+  tbl.querySelector('thead').innerHTML = `<tr><th>Concepto</th>${meses.map(m=>`<th>${m}</th>`).join('')}<th>TOTAL</th></tr>`;
+
+  const rows = [
+    {label:'VENTA DE BIENES', key:'v', cls:''},
+    {label:'OTROS INGRESOS',  key:'oi', cls:''},
+    {label:'GASTOS',          key:'ga', cls:''},
+    {label:'GANANCIA NETA',   key:'gn', cls:'row-calc'},
+    {label:'PARTICIPACIÓN 15%',key:'p15', cls:'row-calc'},
+    {label:'BASE IMPONIBLE',  key:'bi', cls:'row-calc'},
+    {label:'IMPUESTO RENTA 25%',key:'ir', cls:'row-calc'},
+    {label:'RETENCIONES RENTA',key:'re', cls:'row-pct'},
+    {label:'IR POR PAGAR',    key:'irp', cls:'row-calc'},
+    {label:'UTILIDAD LÍQUIDA',key:'ul', cls:'row-final'},
+  ];
+
+  tbl.querySelector('tbody').innerHTML = rows.map(row=>{
+    const cells = meses.map(m=>{ const c=filasCalc(m); return `<td>${fmt$(c[row.key])}</td>`; }).join('');
+    return `<tr class="${row.cls}"><td>${row.label}</td>${cells}<td>${fmt$(T[row.key])}</td></tr>`;
+  }).join('');
+}
+
+function renderChartsTablero(f){
+  let data = sheets.tablero.filter(r => r.AÑO === f.año);
+  const meses = ORDEN_MESES.filter(m => data.some(r=>r.MES===m));
+
+  const getTotal = (det, mes) => {
+    return data.filter(r=>(r.DETALLE===det||r.DETALLE===det+' ')&&r.MES===mes).reduce((s,r)=>s+r.TOTAL,0);
+  };
+
+  const ventas  = meses.map(m=>getTotal('VENTA DE BIENES',m));
+  const gastos  = meses.map(m=>getTotal('GASTOS',m));
+  const ganNeta = meses.map(m=>{
+    const v=getTotal('VENTA DE BIENES',m)||getTotal('VENTA DE BIENES ',m);
+    const oi=getTotal('OTROS INGRESOS',m);
+    const ga=getTotal('GASTOS',m);
+    return v+oi-ga;
+  });
+
+  destroyChart('chart-vg');
+  charts['chart-vg'] = new Chart($('chart-vg'),{
+    type:'bar',
+    data:{
+      labels:meses,
+      datasets:[
+        {label:'Ventas',  data:ventas,  backgroundColor:'rgba(26,122,138,.8)', borderRadius:4},
+        {label:'Gastos',  data:gastos,  backgroundColor:'rgba(224,82,82,.7)',  borderRadius:4},
+      ]
+    },
+    options:{responsive:true,plugins:{legend:{display:true}},scales:{y:{ticks:{callback:v=>fmt$(v)}}}}
+  });
+
+  destroyChart('chart-gn');
+  charts['chart-gn'] = new Chart($('chart-gn'),{
+    type:'line',
+    data:{
+      labels:meses,
+      datasets:[{
+        label:'Ganancia Neta', data:ganNeta,
+        borderColor:'#1DB87A', backgroundColor:'rgba(29,184,122,.1)',
+        fill:true, tension:.35, pointRadius:5
+      }]
+    },
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>fmt$(v)}}}}
+  });
+}
+
+// ══════════════════════════════════════════════════
+// TAB 1 – ANÁLISIS DE GASTOS
+// ══════════════════════════════════════════════════
+let _gastosData = [];
+
+function cerrarDet(){
+  $('det-wrap').style.display = 'none';
+  document.querySelectorAll('#tbl-rubros .row-expandable').forEach(tr=>tr.classList.remove('open'));
+}
+
+function verDetalle(rubro){
+  const detalles = {};
+  _gastosData.filter(r=>r.RUBRO===rubro).forEach(r=>{
+    if(!detalles[r.DETALLE]) detalles[r.DETALLE]={DETALLE:r.DETALLE, TOTAL:0, N:0};
+    detalles[r.DETALLE].TOTAL += r.TOTAL;
+    detalles[r.DETALLE].N++;
+  });
+  const arr = Object.values(detalles).sort((a,b)=>b.TOTAL-a.TOTAL);
+  const tbl = $('tbl-det');
+  tbl.querySelector('thead').innerHTML = '<tr><th>Detalle</th><th>Total</th></tr>';
+  tbl.querySelector('tbody').innerHTML = arr.map(r=>`<tr><td>${r.DETALLE}</td><td>${fmt$(r.TOTAL)}</td></tr>`).join('');
+  $('det-nombre').textContent = rubro;
+  $('det-wrap').style.display = 'block';
+  // mark row open
+  document.querySelectorAll('#tbl-rubros .row-expandable').forEach(tr=>{
+    tr.classList.toggle('open', tr.dataset.rubro===rubro);
+  });
+}
+
+function renderGastos(f){
+  let data = sheets.gastos.filter(r=>r.AÑO===f.año);
+  if(f.mes !== 'TODOS') data = data.filter(r=>r.MES===f.mes);
+  _gastosData = data;
+  cerrarDet();
+
+  const total = data.reduce((s,r)=>s+r.TOTAL,0);
+
+  // KPIs
+  const rubrosSet = [...new Set(data.map(r=>r.RUBRO))];
+  $('kpi-gastos').innerHTML = [
+    {l:'💰 Total Gastos', v:fmt$(total), cls:'red'},
+    {l:'📦 Rubros', v:rubrosSet.length, cls:''},
+    {l:'📅 Meses con datos', v:[...new Set(data.map(r=>r.MES))].length, cls:''},
+  ].map(c=>`<div class="kpi-card ${c.cls}"><div class="kpi-label">${c.l}</div><div class="kpi-value">${c.v}</div></div>`).join('');
+
+  // Tabla por rubro
+  const rubros = {};
+  data.forEach(r=>{
+    if(!rubros[r.RUBRO]) rubros[r.RUBRO]={RUBRO:r.RUBRO, TOTAL:0};
+    rubros[r.RUBRO].TOTAL += r.TOTAL;
+  });
+  const arr = Object.values(rubros).sort((a,b)=>b.TOTAL-a.TOTAL);
+  arr.forEach(r=>r.PCT=(r.TOTAL/(total||1))*100);
+
+  const tblR = $('tbl-rubros');
+  tblR.querySelector('thead').innerHTML = '<tr><th>Rubro</th><th>Total</th><th>%</th></tr>';
+  tblR.querySelector('tbody').innerHTML = arr.map(r=>`
+    <tr class="row-expandable" data-rubro="${r.RUBRO}" onclick="verDetalle('${r.RUBRO.replace(/'/g,"\\'")}')" >
+      <td>${r.RUBRO}</td>
+      <td>${fmt$(r.TOTAL)}</td>
+      <td style="color:${r.PCT>30?'var(--red)':'var(--text)'}">${fmtPct(r.PCT)}</td>
+    </tr>`).join('');
+
+  // Chart rubros
+  destroyChart('chart-rubros');
+  charts['chart-rubros'] = new Chart($('chart-rubros'),{
+    type:'bar',
+    data:{
+      labels: arr.map(r=>r.RUBRO.substring(0,22)),
+      datasets:[{label:'Total', data:arr.map(r=>r.TOTAL), backgroundColor:'#1A7A8A', borderRadius:4}]
+    },
+    options:{indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{ticks:{callback:v=>fmt$(v)}}}}
+  });
+
+  // Tabla evolución mensual
+  renderEvoMensual(f, arr);
+
+  // Charts tendencia y composición
+  renderChartsGastos(f, arr, total);
+}
+
+function renderEvoMensual(f, rubros){
+  let data = sheets.gastos.filter(r=>r.AÑO===f.año);
+  const meses = ORDEN_MESES.filter(m=>data.some(r=>r.MES===m));
+
+  const pivot = {};
+  data.forEach(r=>{
+    if(!pivot[r.RUBRO]) pivot[r.RUBRO]={};
+    pivot[r.RUBRO][r.MES] = (pivot[r.RUBRO][r.MES]||0) + r.TOTAL;
+  });
+
+  const tbl = $('tbl-evo');
+  tbl.querySelector('thead').innerHTML = `<tr><th>Rubro</th>${meses.map(m=>`<th>${m}</th>`).join('')}<th>TOTAL</th></tr>`;
+
+  const totales = {};
+  meses.forEach(m=>{ totales[m] = rubros.reduce((s,r)=>(pivot[r.RUBRO]&&pivot[r.RUBRO][m]?s+pivot[r.RUBRO][m]:s),0); });
+  const totalTotal = rubros.reduce((s,r)=>s+r.TOTAL,0);
+
+  tbl.querySelector('tbody').innerHTML = rubros.map(r=>{
+    const cells = meses.map(m=>`<td>${fmt$(pivot[r.RUBRO]&&pivot[r.RUBRO][m]||0)}</td>`).join('');
+    return `<tr><td>${r.RUBRO}</td>${cells}<td>${fmt$(r.TOTAL)}</td></tr>`;
+  }).join('') + `<tr class="row-total"><td>TOTAL</td>${meses.map(m=>`<td>${fmt$(totales[m])}</td>`).join('')}<td>${fmt$(totalTotal)}</td></tr>`;
+}
+
+function renderChartsGastos(f, rubros, total){
+  let data = sheets.gastos.filter(r=>r.AÑO===f.año);
+  const meses = ORDEN_MESES.filter(m=>data.some(r=>r.MES===m));
+  const totPorMes = meses.map(m=>data.filter(r=>r.MES===m).reduce((s,r)=>s+r.TOTAL,0));
+
+  destroyChart('chart-tend');
+  charts['chart-tend'] = new Chart($('chart-tend'),{
+    type:'line',
+    data:{
+      labels:meses,
+      datasets:[{
+        label:'Gastos Totales', data:totPorMes,
+        borderColor:'#E05252', backgroundColor:'rgba(224,82,82,.1)',
+        fill:true, tension:.35, pointRadius:5
+      }]
+    },
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>fmt$(v)}}}}
+  });
+
+  const colores=['#1A7A8A','#F0A500','#1DB87A','#E05252','#7B6CF6','#2BAFCA','#FF8C42','#6B8E23','#B03A2E','#1F618D'];
+  destroyChart('chart-comp');
+  charts['chart-comp'] = new Chart($('chart-comp'),{
+    type:'doughnut',
+    data:{
+      labels:rubros.map(r=>r.RUBRO),
+      datasets:[{data:rubros.map(r=>r.TOTAL), backgroundColor:colores, borderWidth:2}]
+    },
+    options:{responsive:true,plugins:{legend:{position:'right',labels:{font:{size:11}}},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${fmt$(ctx.raw)} (${((ctx.raw/total)*100).toFixed(1)}%)`}}}}
+  });
+}
+
+// ── INICIO ──
+window.addEventListener('DOMContentLoaded', cargar);
+</script>
+</body>
+</html>
