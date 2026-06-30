@@ -2,7 +2,14 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Elvare"/>
+<meta name="theme-color" content="#0B3C49"/>
+<link rel="manifest" href="manifest.webmanifest"/>
+<link rel="apple-touch-icon" href="Logo 2.png"/>
 <title>Tablero de Control – Elvare Marketing SAS</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
@@ -164,6 +171,26 @@
 
   /* EVOLUCION MENSUAL TABLE */
   .mes-evo-table thead th { background: var(--teal); }
+
+  /* ── MOBILE RESPONSIVE ── */
+  @media(max-width:600px){
+    header { padding: 0 14px; min-height: 58px; gap: 10px; }
+    header img { height: 34px; }
+    header h1 { font-size: .85rem; }
+    #btn-actualizar { padding: 7px 10px; font-size: 12px; }
+    #filtros { padding: 10px 14px; gap: 10px; }
+    .fg select { min-width: 110px; font-size: 12px; }
+    #tabs-bar { padding: 0 6px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .tab-btn { padding: 10px 12px; font-size: 12px; }
+    #content { padding: 14px 12px; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .kpi-value { font-size: 1.1rem; }
+    .gauge-grid { grid-template-columns: repeat(2, 1fr); }
+    .chart-grid, .two-col { grid-template-columns: 1fr; }
+    .table-wrap { max-height: 380px; }
+    table { font-size: 12px; }
+    thead th, tbody td, tfoot td { padding: 8px 8px; }
+  }
 </style>
 </head>
 <body>
@@ -171,7 +198,7 @@
 <div id="loading"><div class="spinner"></div><span style="color:var(--navy);font-weight:700">Procesando datos…</span></div>
 
 <header>
-  <img src="logo.png" alt="Opaustro" onerror="this.style.display='none'"/>
+  <img src="Logo 2.png" alt="Elvare Marketing SAS" onerror="this.style.display='none'"/>
   <h1>TABLERO DE CONTROL – ELVARE MARKETING SAS</h1>
   <button id="btn-actualizar" onclick="cargar()">🔄 Actualizar</button>
 </header>
@@ -1232,6 +1259,11 @@ function renderTimeline(data, hoy){
 
 // ── INICIO ──
 window.addEventListener('DOMContentLoaded', cargar);
+
+// ── PWA SERVICE WORKER ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
 </script>
 </body>
 </html>
