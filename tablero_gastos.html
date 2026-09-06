@@ -144,6 +144,24 @@
   .chart-box h3 { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 14px; }
   .chart-box canvas { max-height: 270px; }
 
+  /* TAB IMPUESTOS */
+  .imp-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  .imp-box { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 18px; border-top: 3px solid var(--teal2); }
+  .imp-box h4 { font-size: 12px; font-weight: 800; color: var(--navy); margin-bottom: 12px; letter-spacing: .02em; }
+  .imp-box label { display: block; font-size: 11px; font-weight: 700; color: var(--gray3); text-transform: uppercase; letter-spacing: .05em; margin: 10px 0 4px; }
+  .imp-box label small { display: block; font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--gray3); font-size: 10px; margin-top: 2px; }
+  .imp-box label em { font-style: normal; color: var(--teal); }
+  .imp-box input, .imp-box select {
+    width: 100%; border: 1.5px solid var(--gray2); border-radius: 7px; padding: 8px 10px;
+    font-size: 14px; font-weight: 700; color: var(--navy); background: #f8fafc; outline: none; font-family: var(--font);
+  }
+  .imp-box input:focus, .imp-box select:focus { border-color: var(--teal); background: var(--white); }
+  .imp-nota { font-size: 10.5px; color: var(--gray3); margin-top: 8px; line-height: 1.5; }
+  #tbl-imp td.imp-lbl { text-align: left; font-weight: 600; }
+  #tbl-imp tr.imp-sec td { background: var(--sky); font-weight: 800; color: var(--navy); text-transform: uppercase; font-size: 11px; letter-spacing: .05em; }
+  #tbl-imp tr.imp-tot td { background: var(--navy); color: var(--white); font-weight: 800; font-size: 14px; }
+  #tbl-imp tr.imp-sub td { font-weight: 800; background: var(--gray1); }
+  .imp-win { outline: 3px solid var(--green); outline-offset: -3px; }
   .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
   @media(max-width:700px) { .two-col { grid-template-columns: 1fr; } }
 
@@ -219,6 +237,7 @@
   <button class="tab-btn" onclick="switchTab(1)">💸 Análisis de Gastos</button>
   <button class="tab-btn" onclick="switchTab(2)">🎯 Proyección Fiscal</button>
   <button class="tab-btn" onclick="switchTab(3)">💰 Inversiones</button>
+  <button class="tab-btn" onclick="switchTab(4)">⚖️ Empresa vs Persona Natural</button>
 </div>
 
 <div id="content">
@@ -385,6 +404,88 @@
       <div class="chart-box"><h3>Composición del Gasto</h3><canvas id="chart-comp"></canvas></div>
     </div>
   </div>
+
+  <!-- TAB 4: EMPRESA VS PERSONA NATURAL -->
+  <div class="tab-panel" id="panel-4">
+    <div class="section-title">⚖️ ¿Conviene seguir con la empresa o pasar todo a persona natural?</div>
+
+    <div style="background:#fff;border-radius:10px;box-shadow:var(--shadow);padding:14px 18px;margin-bottom:18px;border-left:4px solid var(--teal2);font-size:12px;color:var(--text)">
+      🔒 Los valores que escribas se guardan <strong>solo en este dispositivo</strong> (no se suben a ningún lado).
+      Los datos del negocio se precargan desde el tablero; los datos personales del dueño los escribes tú.
+      <button onclick="impCargarDelTablero()" style="margin-left:8px;background:var(--teal);color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">↻ Traer ventas y gastos del tablero</button>
+      <button onclick="impReset()" style="margin-left:4px;background:transparent;border:1.5px solid var(--gray2);color:var(--gray3);padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">Borrar todo</button>
+    </div>
+
+    <!-- INPUTS -->
+    <div class="imp-inputs">
+      <div class="imp-box">
+        <h4>🏢 El negocio (igual en los dos casos)</h4>
+        <label>Ventas anuales</label>
+        <input id="imp-ventas" type="number" step="100" oninput="renderImpuestos()"/>
+        <label>Gastos deducibles anuales</label>
+        <input id="imp-gastos" type="number" step="100" oninput="renderImpuestos()"/>
+        <label>Gastos que desaparecen como persona natural
+          <small>contador, IESS de la empresa, sistema contable, patentes</small></label>
+        <input id="imp-gastos-emp" type="number" step="50" oninput="renderImpuestos()"/>
+      </div>
+
+      <div class="imp-box">
+        <h4>👤 El dueño</h4>
+        <label>Sueldo anual que cobra <em>si sigue la empresa</em></label>
+        <input id="imp-sueldo-emp" type="number" step="100" oninput="renderImpuestos()"/>
+        <label>Sueldo anual que cobra <em>como persona natural</em></label>
+        <input id="imp-sueldo-pn" type="number" step="100" oninput="renderImpuestos()"/>
+        <label>Dividendos que recibe al año <small>de otras compañías</small></label>
+        <input id="imp-div" type="number" step="100" oninput="renderImpuestos()"/>
+        <label>Aportes personales al IESS (deducibles)</label>
+        <input id="imp-iess" type="number" step="50" oninput="renderImpuestos()"/>
+      </div>
+
+      <div class="imp-box">
+        <h4>🧾 Gastos personales (solo sirven como persona natural)</h4>
+        <label>Cargas familiares</label>
+        <select id="imp-cargas" onchange="renderImpuestos()">
+          <option value="0">0</option><option value="1">1</option><option value="2">2</option>
+          <option value="3">3</option><option value="4">4</option><option value="5">5 o más</option>
+        </select>
+        <label>Gastos personales anuales <small>vivienda, salud, educación, alimentación, vestimenta, turismo, mascotas</small></label>
+        <input id="imp-gp" type="number" step="100" oninput="renderImpuestos()"/>
+        <div id="imp-tope-info" class="imp-nota"></div>
+      </div>
+
+      <div class="imp-box">
+        <h4>⚙️ Parámetros fiscales</h4>
+        <label>Tarifa IR de la sociedad</label>
+        <select id="imp-tar-soc" onchange="renderImpuestos()">
+          <option value="0.22">22% — micro y pequeña empresa</option>
+          <option value="0.25">25% — tarifa general</option>
+          <option value="0.28">28% — paraísos fiscales / no informa</option>
+        </select>
+        <label>¿Hay empleados? (aplica 15% de utilidades)</label>
+        <select id="imp-part" onchange="renderImpuestos()">
+          <option value="SI">Sí</option><option value="NO">No</option>
+        </select>
+        <label>Impuesto a dividendos a persona natural</label>
+        <select id="imp-tar-div" onchange="renderImpuestos()">
+          <option value="0.12">12% del total</option>
+          <option value="0.12-3">12% con 3 SBU exentos</option>
+        </select>
+        <div class="imp-nota">A una sociedad los dividendos le llegan exentos (0%).</div>
+      </div>
+    </div>
+
+    <!-- VEREDICTO -->
+    <div id="imp-veredicto" style="margin:18px 0"></div>
+
+    <!-- TARJETAS -->
+    <div class="kpi-grid" id="imp-cards"></div>
+
+    <hr class="divider"/>
+    <div class="section-title" style="font-size:13px">📋 Detalle del cálculo</div>
+    <div class="table-wrap" style="max-height:none"><table id="tbl-imp"><thead></thead><tbody></tbody></table></div>
+
+    <div id="imp-notas" style="margin-top:18px;background:#fff;border-radius:10px;box-shadow:var(--shadow);padding:16px 20px;font-size:12px;line-height:1.7;color:var(--text)"></div>
+  </div>
 </div>
 
 <script>
@@ -494,7 +595,7 @@ function getFiltros(){
 }
 
 // ── TABS ──
-const PANELS = ['panel-0','panel-1','panel-2','panel-3'];
+const PANELS = ['panel-0','panel-1','panel-2','panel-3','panel-4'];
 
 function switchTab(idx){
   activeTab = idx;
@@ -512,7 +613,8 @@ function render(){
   if(activeTab === 0) renderTablero(f);
   else if(activeTab === 1) renderGastos(f);
   else if(activeTab === 2) renderProyeccion(f);
-  else renderInversiones();
+  else if(activeTab === 3) renderInversiones();
+  else renderImpuestos();
 }
 
 // ── GAUGE SVG ──
@@ -1257,8 +1359,224 @@ function renderTimeline(data, hoy){
     </div>`;
 }
 
+// ══════════════════════════════════════════════════
+// TAB 4 – EMPRESA VS PERSONA NATURAL
+// ══════════════════════════════════════════════════
+
+// Tabla IR personas naturales 2026 (Res. NAC-DGERCGC25-00000043)
+const TABLA_IR_PN = [
+  [0,0,0],[12208,0,0.05],[15549,167,0.10],[20188,631,0.12],[26700,1412,0.15],
+  [35136,2678,0.20],[46575,4965,0.25],[62005,8823,0.30],[82679,15025,0.35],[109956,24572,0.37]
+];
+const CANASTA_2026 = 821.80;
+const SBU_2026     = 482;
+const REBAJA_PCT   = 0.18;
+const CANASTAS_POR_CARGA = {0:7, 1:9, 2:12, 3:15, 4:17, 5:20};
+const IMP_KEY = 'elvare_impuestos_v1';
+const IMP_CAMPOS = ['imp-ventas','imp-gastos','imp-gastos-emp','imp-sueldo-emp','imp-sueldo-pn',
+                    'imp-div','imp-iess','imp-cargas','imp-gp','imp-tar-soc','imp-part','imp-tar-div'];
+
+function irPersonaNatural(base){
+  if(base <= 0) return 0;
+  let t = TABLA_IR_PN[0];
+  for(const fila of TABLA_IR_PN){ if(base >= fila[0]) t = fila; }
+  return t[1] + (base - t[0]) * t[2];
+}
+
+function impGuardar(){
+  const d = {};
+  IMP_CAMPOS.forEach(id => { const el = $(id); if(el) d[id] = el.value; });
+  try { localStorage.setItem(IMP_KEY, JSON.stringify(d)); } catch(e){}
+}
+function impRestaurar(){
+  let d = {};
+  try { d = JSON.parse(localStorage.getItem(IMP_KEY) || '{}'); } catch(e){}
+  IMP_CAMPOS.forEach(id => { const el = $(id); if(el && d[id] !== undefined) el.value = d[id]; });
+}
+function impReset(){
+  try { localStorage.removeItem(IMP_KEY); } catch(e){}
+  IMP_CAMPOS.forEach(id => {
+    const el = $(id);
+    if(!el) return;
+    if(el.tagName === 'SELECT') el.selectedIndex = 0; else el.value = '';
+  });
+  renderImpuestos();
+}
+
+// Trae ventas y gastos anualizados desde las hojas del TABLERO
+function impCargarDelTablero(){
+  const año = parseFloat($('sel-año').value);
+  if(!año || !sheets.tablero) return;
+  const data = sheets.tablero.filter(r => r.AÑO === año);
+  const nMeses = [...new Set(data.map(r=>r.MES))].filter(m=>ORDEN_MESES.includes(m)).length || 1;
+  const sum = {};
+  data.forEach(r => { sum[r.DETALLE] = (sum[r.DETALLE]||0) + r.TOTAL; });
+  const ventas = (sum['VENTA DE BIENES '] || sum['VENTA DE BIENES'] || 0) + (sum['OTROS INGRESOS'] || 0);
+  const gastos = sum['GASTOS'] || 0;
+  $('imp-ventas').value = (ventas * 12 / nMeses).toFixed(2);
+  $('imp-gastos').value = (gastos * 12 / nMeses).toFixed(2);
+  renderImpuestos();
+}
+
+function renderImpuestos(){
+  const num = id => { const el = $(id); return el ? (parseFloat(el.value) || 0) : 0; };
+  const val = id => { const el = $(id); return el ? el.value : ''; };
+
+  const ventas   = num('imp-ventas');
+  const gastos   = num('imp-gastos');
+  const gastosEmp= num('imp-gastos-emp');      // desaparecen como persona natural
+  const sueldoEmp= num('imp-sueldo-emp');
+  const sueldoPN = num('imp-sueldo-pn');
+  const divRecib = num('imp-div');
+  const iess     = num('imp-iess');
+  const cargas   = parseInt(val('imp-cargas')) || 0;
+  const gp       = num('imp-gp');
+  const tarSoc   = parseFloat(val('imp-tar-soc')) || 0.22;
+  const aplicaPart = val('imp-part') !== 'NO';
+  const divConExencion = val('imp-tar-div') === '0.12-3';
+  const tarDiv   = 0.12;
+  const exentoDiv = divConExencion ? 3 * SBU_2026 : 0;
+
+  // Rebaja por gastos personales
+  const nCanastas = CANASTAS_POR_CARGA[cargas] || 7;
+  const tope      = nCanastas * CANASTA_2026;
+  const rebaja    = Math.min(gp, tope) * REBAJA_PCT;
+  const infoTope = $('imp-tope-info');
+  if(infoTope) infoTope.innerHTML =
+    `Con ${cargas} carga${cargas===1?'':'s'} el tope es ${nCanastas} canastas básicas
+     (${nCanastas} × ${fmt$(CANASTA_2026)}) = <strong>${fmt$(tope)}</strong>.<br>
+     La rebaja es el 18% de lo menor entre tu gasto y ese tope = <strong style="color:var(--green)">${fmt$(rebaja)}</strong> menos de impuesto.`;
+
+  // ── Escenarios ──
+  function calcNegocio(gastoDeducible){
+    const uti  = ventas - gastoDeducible;
+    const part = aplicaPart ? Math.max(0, uti) * 0.15 : 0;
+    return { uti, part, utiNeta: uti - part };
+  }
+  function calcPersona(sueldo, utilidadAtribuida){
+    const base = Math.max(0, sueldo + utilidadAtribuida - iess);
+    const causado = irPersonaNatural(base);
+    const reb = Math.min(causado, rebaja);
+    return { base, causado, reb, ir: Math.max(0, causado - reb) };
+  }
+
+  // A y B: la empresa. C: persona natural.
+  const negE = calcNegocio(gastos);
+  const irSoc = Math.max(0, negE.utiNeta) * tarSoc;
+  const perE  = calcPersona(sueldoEmp, 0);
+
+  const divRepartido = Math.max(0, negE.utiNeta - irSoc) + divRecib;
+  const irDivRepartido = Math.max(0, divRepartido - exentoDiv) * tarDiv;
+
+  const negP = calcNegocio(gastos - gastosEmp);
+  const perP = calcPersona(sueldoPN, Math.max(0, negP.utiNeta));
+  const irDivPN = Math.max(0, divRecib - exentoDiv) * tarDiv;
+
+  const esc = [
+    { k:'A', nom:'Empresa reinvirtiendo', sub:'no reparte dividendos',
+      irSoc: irSoc, irPer: perE.ir, irDiv: 0,
+      bolsillo: sueldoEmp - perE.ir,
+      empresa: Math.max(0, negE.utiNeta - irSoc) + divRecib,
+      neg: negE, per: perE },
+    { k:'B', nom:'Empresa repartiendo', sub:'saca toda la plata al dueño',
+      irSoc: irSoc, irPer: perE.ir, irDiv: irDivRepartido,
+      bolsillo: sueldoEmp - perE.ir + divRepartido - irDivRepartido,
+      empresa: 0, neg: negE, per: perE },
+    { k:'C', nom:'Persona natural', sub:'sin empresa',
+      irSoc: 0, irPer: perP.ir, irDiv: irDivPN,
+      bolsillo: sueldoPN + Math.max(0, negP.utiNeta) - perP.ir + divRecib - irDivPN,
+      empresa: 0, neg: negP, per: perP }
+  ];
+  esc.forEach(e => {
+    e.total = e.irSoc + e.irPer + e.irDiv;
+    e.ingresos = ventas + (e.k === 'C' ? sueldoPN : sueldoEmp) + divRecib;
+    e.tasa = e.ingresos > 0 ? e.total / e.ingresos * 100 : 0;
+    e.patrimonio = e.bolsillo + e.empresa;
+  });
+
+  // ── Veredicto: comparo el escenario real (A) contra persona natural (C) ──
+  const A = esc[0], C = esc[2];
+  const dif = C.total - A.total;
+  const ganaEmpresa = dif > 0;
+  $('imp-veredicto').innerHTML = `
+    <div style="background:${ganaEmpresa?'#e7f9ef':'#fde8e8'};border:2px solid ${ganaEmpresa?'var(--green)':'var(--red)'};border-radius:10px;padding:20px 24px">
+      <div style="font-size:1.05rem;font-weight:800;color:${ganaEmpresa?'#0f7a4d':'#b83434'};margin-bottom:8px">
+        ${ganaEmpresa ? '✅ Conviene seguir con la empresa' : '⚠️ Conviene pasar todo a persona natural'}
+      </div>
+      <div style="font-size:13px;color:${ganaEmpresa?'#0d5c3a':'#6b2020'};line-height:1.7">
+        Con la empresa reinvirtiendo paga <strong>${fmt$(A.total)}</strong> de impuestos al año.
+        Como persona natural pagaría <strong>${fmt$(C.total)}</strong>.
+        Diferencia: <strong>${fmt$(Math.abs(dif))} ${ganaEmpresa ? 'a favor de la empresa' : 'a favor de la persona natural'}</strong>.
+      </div>
+    </div>`;
+
+  // ── Tarjetas ──
+  const mejor = Math.min(...esc.map(e=>e.total));
+  $('imp-cards').innerHTML = esc.map(e => `
+    <div class="kpi-card ${e.total===mejor?'green':''}">
+      <div class="kpi-label">${e.k}) ${e.nom}</div>
+      <div class="kpi-value">${fmt$(e.total)}</div>
+      <div class="kpi-sub">${e.sub} · tasa efectiva ${fmtPct(e.tasa)}</div>
+    </div>`).join('');
+
+  // ── Tabla de detalle ──
+  const F$ = v => fmt$(v);
+  const filas = [
+    ['sec','EL NEGOCIO','','',''],
+    ['','Ventas anuales', F$(ventas), F$(ventas), F$(ventas)],
+    ['','(-) Gastos deducibles', F$(gastos), F$(gastos), F$(gastos - gastosEmp)],
+    ['sub','= Utilidad del negocio', F$(negE.uti), F$(negE.uti), F$(negP.uti)],
+    ['','(-) 15% participación trabajadores', F$(negE.part), F$(negE.part), F$(negP.part)],
+    ['sub','= Utilidad después de participación', F$(negE.utiNeta), F$(negE.utiNeta), F$(negP.utiNeta)],
+    ['sec','IMPUESTO DE LA SOCIEDAD','','',''],
+    ['',`IR sociedad (${(tarSoc*100).toFixed(0)}%)`, F$(irSoc), F$(irSoc), '—'],
+    ['sec','IMPUESTO DE LA PERSONA (tabla progresiva)','','',''],
+    ['','Sueldo del dueño', F$(sueldoEmp), F$(sueldoEmp), F$(sueldoPN)],
+    ['','(+) Utilidad del negocio que se le atribuye', F$(0), F$(0), F$(Math.max(0,negP.utiNeta))],
+    ['','(-) Aportes personales IESS', F$(iess), F$(iess), F$(iess)],
+    ['sub','= Base imponible de la persona', F$(perE.base), F$(perE.base), F$(perP.base)],
+    ['','IR causado', F$(perE.causado), F$(perE.causado), F$(perP.causado)],
+    ['','(-) Rebaja por gastos personales', F$(perE.reb), F$(perE.reb), F$(perP.reb)],
+    ['sub','= IR de la persona', F$(perE.ir), F$(perE.ir), F$(perP.ir)],
+    ['sec','DIVIDENDOS','','',''],
+    ['','Dividendos que recibe', F$(divRecib), F$(divRecib), F$(divRecib)],
+    ['','Impuesto sobre esos dividendos', '$0.00 (los recibe la SAS)', '—', F$(irDivPN)],
+    ['','Dividendo que la SAS le reparte', '—', F$(divRepartido), '—'],
+    ['','Impuesto sobre ese dividendo (12%)', '—', F$(irDivRepartido), '—'],
+    ['sec','RESULTADO','','',''],
+    ['tot','IMPUESTO TOTAL DEL AÑO', F$(esc[0].total), F$(esc[1].total), F$(esc[2].total)],
+    ['','Tasa efectiva', fmtPct(esc[0].tasa), fmtPct(esc[1].tasa), fmtPct(esc[2].tasa)],
+    ['sub','Efectivo que le llega al dueño', F$(esc[0].bolsillo), F$(esc[1].bolsillo), F$(esc[2].bolsillo)],
+    ['sub','Dinero que queda dentro de la empresa', F$(esc[0].empresa), F$(esc[1].empresa), F$(esc[2].empresa)]
+  ];
+  const tbl = $('tbl-imp');
+  tbl.querySelector('thead').innerHTML = `<tr>
+    <th style="text-align:left">Concepto</th>
+    <th>A) Empresa reinvirtiendo</th>
+    <th>B) Empresa repartiendo</th>
+    <th>C) Persona natural</th></tr>`;
+  tbl.querySelector('tbody').innerHTML = filas.map(f => {
+    if(f[0]==='sec') return `<tr class="imp-sec"><td colspan="4">${f[1]}</td></tr>`;
+    const cls = f[0]==='tot' ? 'imp-tot' : (f[0]==='sub' ? 'imp-sub' : '');
+    return `<tr class="${cls}"><td class="imp-lbl">${f[1]}</td><td>${f[2]}</td><td>${f[3]}</td><td>${f[4]}</td></tr>`;
+  }).join('');
+
+  // ── Notas ──
+  $('imp-notas').innerHTML = `
+    <strong style="color:var(--navy)">Cómo leer esto</strong><br>
+    • <strong>A</strong> es el escenario real mientras la utilidad se reinvierta en la empresa. <strong>B</strong> es de referencia: muestra lo que costaría el día que quiera sacar esa plata.<br>
+    • Los dividendos que le llegan a la <strong>sociedad</strong> están exentos; los que le llegan <strong>directo a la persona</strong> pagan 12%. Mientras la plata se queda en la empresa el 12% se difiere, no se ahorra.<br>
+    • Como persona natural, la utilidad del negocio <strong>se suma al sueldo</strong> y sube de tramo en la tabla progresiva (hasta 37%).<br>
+    • La <strong>rebaja por gastos personales</strong> no baja el ingreso: descuenta directo del impuesto, y solo existe para persona natural.<br>
+    • El <strong>anticipo por utilidades no distribuidas</strong> es 0% mientras las utilidades retenidas no pasen de USD 100.000. Como se reinvierten, hay que vigilar ese techo año a año.<br><br>
+    <strong style="color:var(--amber)">⚠️ Esto es una herramienta de planificación, no asesoría tributaria.</strong>
+    Las tarifas y tablas son de 2026 y deben ser confirmadas por el contador antes de tomar cualquier decisión.`;
+
+  impGuardar();
+}
+
 // ── INICIO ──
-window.addEventListener('DOMContentLoaded', cargar);
+window.addEventListener('DOMContentLoaded', () => { impRestaurar(); cargar(); });
 
 // ── PWA SERVICE WORKER ──
 if ('serviceWorker' in navigator) {
