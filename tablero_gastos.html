@@ -495,6 +495,8 @@
     <div class="section-title" style="font-size:13px">📋 Detalle del cálculo</div>
     <div class="table-wrap" style="max-height:none"><table id="tbl-imp"><thead></thead><tbody></tbody></table></div>
 
+    <div id="imp-costo-empresa" style="margin-top:22px"></div>
+
     <div id="imp-notas" style="margin-top:18px;background:#fff;border-radius:10px;box-shadow:var(--shadow);padding:16px 20px;font-size:12px;line-height:1.7;color:var(--text)"></div>
   </div>
 </div>
@@ -1445,17 +1447,25 @@ function parsearImpuestos(wb){
 
   // GASTOS INCURRIDOS NEGOCIOS: los que desaparecen si no hay empresa
   let gastosEmpresaSola = 0;
+  const detalleEmpresa = [];
   const wsN = wb.Sheets['GASTOS INCURRIDOS NEGOCIOS'];
   if(wsN && wsN['!ref']){
     const rng = XLSX.utils.decode_range(wsN['!ref']);
-    for(let r = 1; r <= rng.e.r; r++) gastosEmpresaSola += num(wsN['B'+(r+1)]);
+    for(let r = 1; r <= rng.e.r; r++){
+      const f = r + 1;
+      const valor = num(wsN['B'+f]);
+      const detalle = wsN['A'+f] ? String(wsN['A'+f].v).trim() : '';
+      if(!detalle && !valor) continue;
+      gastosEmpresaSola += valor;
+      detalleEmpresa.push({ detalle: detalle || '(sin detalle)', valor });
+    }
   }
 
   return {
     ventasEmp: ventas.emp, ventasPN: ventas.pn || ventas.emp,
     sueldoEmp: sueldos.emp, sueldoPN: sueldos.pn,
     divEmp: dividendos.emp, divPN: dividendos.pn || dividendos.emp,
-    gastosDed, gastosEmpresaSola,
+    gastosDed, gastosEmpresaSola, detalleEmpresa,
     cargas: num(celda('GASTOS_PN','A2')),
     gastosPersonales: num(celda('GASTOS_PN','B2'))
   };
@@ -1568,10 +1578,6 @@ function renderImpuestos(){
   const negE = calcNegocio(gastos);
   const irSoc = Math.max(0, negE.utiNeta) * tarSoc;
 
-  // Lo que costaría el día que quiera sacar la plata de la empresa (solo para la nota)
-  const acumuladoEnEmpresa = Math.max(0, negE.utiNeta - irSoc) + divRecib;
-  const costoSacarla = Math.max(0, acumuladoEnEmpresa - exentoDiv) * tarDiv;
-
   // Persona natural. Dos formas de armar la base, según el selector:
   //  · bruto → ventas + sueldo, sin descontar los gastos del negocio
   //  · neto  → utilidad del negocio (ya sin gastos ni 15%) + sueldo
@@ -1580,24 +1586,17 @@ function renderImpuestos(){
   const aportePN = baseBruta ? ventasPN : Math.max(0, negP.utiNeta);
   const perP = calcPersona(sueldoPN, aportePN);
   const irDivPN = Math.max(0, divRecib - exentoDiv) * tarDiv;
-  // El gasto sale de caja igual, se descuente o no del impuesto
-  const efectivoNegocioPN = negP.uti - (baseBruta ? 0 : negP.part);
 
   const esc = [
     { k:'A', nom:'Seguir con la empresa', sub:'reinvierte, no reparte dividendos',
-      irSoc: irSoc, irPer: 0, irDiv: 0,
-      bolsillo: 0, empresa: acumuladoEnEmpresa,
-      neg: negE, per: null },
+      irSoc: irSoc, irPer: 0, irDiv: 0, neg: negE, per: null },
     { k:'C', nom:'Persona natural', sub:'sin empresa',
-      irSoc: 0, irPer: perP.ir, irDiv: irDivPN,
-      bolsillo: sueldoPN + efectivoNegocioPN - perP.ir + divRecib - irDivPN,
-      empresa: 0, neg: negP, per: perP }
+      irSoc: 0, irPer: perP.ir, irDiv: irDivPN, neg: negP, per: perP }
   ];
   esc.forEach(e => {
     e.total = e.irSoc + e.irPer + e.irDiv;
     e.ingresos = (e.k === 'C' ? ventasPN + sueldoPN : ventas) + divRecib;
     e.tasa = e.ingresos > 0 ? e.total / e.ingresos * 100 : 0;
-    e.patrimonio = e.bolsillo + e.empresa;
   });
 
   // ── Veredicto: empresa reinvirtiendo contra persona natural ──
@@ -1668,9 +1667,7 @@ function renderImpuestos(){
     ['','Impuesto sobre esos dividendos', '$0.00 (los recibe la SAS)', F$(irDivPN)],
     ['sec','RESULTADO','',''],
     ['tot','IMPUESTO TOTAL DEL AÑO', F$(esc[0].total), F$(esc[1].total)],
-    ['','Tasa efectiva', fmtPct(esc[0].tasa), fmtPct(esc[1].tasa)],
-    ['sub','Efectivo que le llega al dueño', F$(esc[0].bolsillo), F$(esc[1].bolsillo)],
-    ['sub','Dinero que queda dentro de la empresa', F$(esc[0].empresa), F$(esc[1].empresa)]
+    ['','Tasa efectiva', fmtPct(esc[0].tasa), fmtPct(esc[1].tasa)]
   ];
   const tbl = $('tbl-imp');
   tbl.querySelector('thead').innerHTML = `<tr>
@@ -1683,22 +1680,23 @@ function renderImpuestos(){
     return `<tr class="${cls}"><td class="imp-lbl">${f[1]}</td><td>${f[2]}</td><td>${f[3]}</td></tr>`;
   }).join('');
 
-  // ── Notas ──
+  // ── Lo que cuesta mantener la empresa al año ──
+  const det = (DATOS_IMP && DATOS_IMP.detalleEmpresa) || [];
+  $('imp-costo-empresa').innerHTML = det.length ? `
+    <div class="section-title" style="font-size:13px">🏢 Lo que se gasta al año solo por tener la empresa</div>
+    <div class="table-wrap" style="max-height:none;margin-bottom:6px">
+      <table>
+        <thead><tr><th style="text-align:left">Detalle</th><th>Valor anual</th></tr></thead>
+        <tbody>
+          ${det.map(d => `<tr><td class="imp-lbl">${d.detalle}</td><td>${fmt$(d.valor)}</td></tr>`).join('')}
+          <tr class="imp-tot"><td>TOTAL AL AÑO</td><td>${fmt$(gastosEmp)}</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="imp-nota">Es el gasto que desaparece si no hay empresa. Sale de la hoja
+      <strong>GASTOS INCURRIDOS NEGOCIOS</strong> del Excel.</div>` : '';
+
   $('imp-notas').innerHTML = `
-    <strong style="color:var(--navy)">Cómo leer esto</strong><br>
-    • <strong>Como persona natural</strong> el cálculo es:
-      ${baseBruta ? 'ventas' : 'utilidad del negocio'} <strong>+ sueldo</strong> = base,
-      sobre esa base la tabla progresiva, <strong>menos la rebaja por las cargas</strong>, y aparte se
-      suma el <strong>12% de los dividendos</strong>.<br>
-    ${baseBruta ? `• Está calculando sobre <strong>ventas + sueldo, sin descontar los gastos del negocio</strong>.
-      Ojo con esto: la empresa sí los descuenta, así que la comparación castiga a la persona natural.
-      En "Base como persona natural" puede cambiarlo a que descuente los gastos.<br>` : ''}
-    • Los dividendos que le llegan a la <strong>sociedad</strong> están exentos; los que le llegan <strong>directo a la persona</strong> pagan 12%.
-      Mientras la plata se queda en la empresa ese 12% se difiere, no se ahorra: el día que quiera sacarla costaría
-      <strong>${fmt$(costoSacarla)}</strong> sobre los ${fmt$(acumuladoEnEmpresa)} acumulados.<br>
-    • Al sumarse al sueldo, la utilidad del negocio <strong>sube de tramo</strong> en la tabla progresiva (hasta 37%).<br>
-    • La <strong>rebaja por gastos personales</strong> no baja el ingreso: descuenta directo del impuesto, y solo existe para persona natural.<br>
-    • El <strong>anticipo por utilidades no distribuidas</strong> es 0% mientras las utilidades retenidas no pasen de USD 100.000. Como se reinvierten, hay que vigilar ese techo año a año.<br><br>
     <strong style="color:var(--amber)">⚠️ Esto es una herramienta de planificación, no asesoría tributaria.</strong>
     Las tarifas y tablas son de 2026 y deben ser confirmadas por el contador antes de tomar cualquier decisión.`;
 
