@@ -436,6 +436,9 @@
 
       <div class="imp-box">
         <h4>👤 El dueño</h4>
+        <label>Lo que facturaría <em>a su nombre</em>
+          <small>hoy esa venta la factura la empresa; sin empresa la facturaría él</small></label>
+        <input id="imp-ventas-pn" type="number" step="100" oninput="renderImpuestos()"/>
         <label>Sueldo anual que cobra <em>como persona natural</em></label>
         <input id="imp-sueldo-pn" type="number" step="100" oninput="renderImpuestos()"/>
         <label>Dividendos que recibe al año <small>de otras compañías</small></label>
@@ -1383,7 +1386,7 @@ const SBU_2026     = 482;
 const REBAJA_PCT   = 0.18;
 const CANASTAS_POR_CARGA = {0:7, 1:9, 2:12, 3:15, 4:17, 5:20};
 const IMP_KEY = 'elvare_impuestos_v1';
-const IMP_CAMPOS = ['imp-ventas','imp-gastos','imp-gastos-emp','imp-sueldo-pn',
+const IMP_CAMPOS = ['imp-ventas','imp-gastos','imp-gastos-emp','imp-ventas-pn','imp-sueldo-pn',
                     'imp-div','imp-iess','imp-cargas','imp-gp','imp-tar-soc','imp-part','imp-tar-div'];
 
 // ── Datos que vienen del Excel de análisis ──
@@ -1464,6 +1467,7 @@ function impCargarDelExcel(){
   const d = DATOS_IMP;
   const set = (id, v) => { const el = $(id); if(el) el.value = v; };
   set('imp-ventas',     d.ventasEmp.toFixed(2));
+  set('imp-ventas-pn',  d.ventasPN.toFixed(2));
   set('imp-gastos',     d.gastosDed.toFixed(2));
   set('imp-gastos-emp', d.gastosEmpresaSola.toFixed(2));
   set('imp-sueldo-pn',  d.sueldoPN.toFixed(2));
@@ -1525,6 +1529,7 @@ function renderImpuestos(){
   const ventas   = num('imp-ventas');
   const gastos   = num('imp-gastos');
   const gastosEmp= num('imp-gastos-emp');      // desaparecen como persona natural
+  const ventasPN = num('imp-ventas-pn') || ventas;  // lo que facturaría el dueño a su nombre
   const sueldoPN = num('imp-sueldo-pn');
   const divRecib = num('imp-div');
   const iess     = num('imp-iess');
@@ -1547,8 +1552,8 @@ function renderImpuestos(){
      La rebaja es el 18% de lo menor entre tu gasto y ese tope = <strong style="color:var(--green)">${fmt$(rebaja)}</strong> menos de impuesto.`;
 
   // ── Escenarios ──
-  function calcNegocio(gastoDeducible){
-    const uti  = ventas - gastoDeducible;
+  function calcNegocio(gastoDeducible, ingreso){
+    const uti  = (ingreso === undefined ? ventas : ingreso) - gastoDeducible;
     const part = aplicaPart ? Math.max(0, uti) * 0.15 : 0;
     return { uti, part, utiNeta: uti - part };
   }
@@ -1571,8 +1576,8 @@ function renderImpuestos(){
   //  · bruto → ventas + sueldo, sin descontar los gastos del negocio
   //  · neto  → utilidad del negocio (ya sin gastos ni 15%) + sueldo
   const baseBruta = val('imp-base-pn') !== 'neto';
-  const negP = calcNegocio(gastos - gastosEmp);
-  const aportePN = baseBruta ? ventas : Math.max(0, negP.utiNeta);
+  const negP = calcNegocio(gastos - gastosEmp, ventasPN);
+  const aportePN = baseBruta ? ventasPN : Math.max(0, negP.utiNeta);
   const perP = calcPersona(sueldoPN, aportePN);
   const irDivPN = Math.max(0, divRecib - exentoDiv) * tarDiv;
   // El gasto sale de caja igual, se descuente o no del impuesto
@@ -1590,7 +1595,7 @@ function renderImpuestos(){
   ];
   esc.forEach(e => {
     e.total = e.irSoc + e.irPer + e.irDiv;
-    e.ingresos = ventas + (e.k === 'C' ? sueldoPN : 0) + divRecib;
+    e.ingresos = (e.k === 'C' ? ventasPN + sueldoPN : ventas) + divRecib;
     e.tasa = e.ingresos > 0 ? e.total / e.ingresos * 100 : 0;
     e.patrimonio = e.bolsillo + e.empresa;
   });
@@ -1643,15 +1648,15 @@ function renderImpuestos(){
   const F$ = v => fmt$(v);
   const filas = [
     ['sec','EL NEGOCIO','',''],
-    ['','Ventas anuales', F$(ventas), F$(ventas)],
+    ['','Ventas anuales', F$(ventas), F$(ventasPN)],
     ['','(-) Gastos deducibles', F$(gastos), baseBruta ? 'no se descuentan' : F$(gastos - gastosEmp)],
-    ['sub','= Utilidad del negocio', F$(negE.uti), F$(negP.uti)],
+    ['sub','= Utilidad del negocio', F$(negE.uti), baseBruta ? '—' : F$(negP.uti)],
     ['','(-) 15% participación trabajadores', F$(negE.part), baseBruta ? '—' : F$(negP.part)],
     ['sub','= Utilidad después de participación', F$(negE.utiNeta), baseBruta ? '—' : F$(negP.utiNeta)],
     ['sec','IMPUESTO DE LA SOCIEDAD','',''],
     ['',`IR sociedad (${(tarSoc*100).toFixed(0)}%)`, F$(irSoc), '—'],
     ['sec','IMPUESTO DE LA PERSONA (tabla progresiva)','',''],
-    ['', baseBruta ? 'Ventas del negocio' : 'Utilidad del negocio que se le atribuye', '—', F$(aportePN)],
+    ['', baseBruta ? 'Lo que factura a su nombre' : 'Utilidad del negocio que se le atribuye', '—', F$(aportePN)],
     ['','(+) Sueldo del dueño', '—', F$(sueldoPN)],
     ['','(-) Aportes personales IESS', '—', F$(iess)],
     ['sub','= Base imponible de la persona', '—', F$(perP.base)],
