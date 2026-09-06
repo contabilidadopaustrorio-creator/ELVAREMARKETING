@@ -2,6 +2,7 @@ const CACHE = 'elvare-v2';
 const ASSETS = [
   './tablero_gastos.html',
   './TABLERO.xlsx',
+  './ANALISIS_IMPUESTOS_RESULTADO.xlsx',
   './Logo 2.png',
   'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js'
@@ -10,7 +11,7 @@ const ASSETS = [
 // El tablero y los datos se piden siempre a la red primero: así una versión
 // nueva del HTML o del Excel se ve al instante. El resto (logo, librerías)
 // se sirve desde caché, que no cambia.
-const SIEMPRE_FRESCO = ['tablero_gastos.html', 'TABLERO.xlsx'];
+const SIEMPRE_FRESCO = ['tablero_gastos.html', 'TABLERO.xlsx', 'ANALISIS_IMPUESTOS_RESULTADO.xlsx'];
 const esFresco = url => SIEMPRE_FRESCO.some(n => url.includes(n));
 
 self.addEventListener('install', e => {

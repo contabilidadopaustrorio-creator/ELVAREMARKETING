@@ -1,5 +1,5 @@
-# Datos personales del dueño — NO subir a un repo público
-ANALISIS_IMPUESTOS_*.xlsx
+# Archivo de trabajo intermedio: el que usa el tablero es ANALISIS_IMPUESTOS_RESULTADO.xlsx
+ANALISIS_IMPUESTOS_INSUMOS.xlsx
 
 # Configuración local de herramientas
 .claude/
